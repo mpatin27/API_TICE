@@ -5,6 +5,7 @@ from pydantic import BaseModel
 from sqlalchemy import create_engine, Column, Integer, String, DateTime
 from sqlalchemy.orm import sessionmaker, Session, declarative_base
 from datetime import datetime
+from typing import Optional, Dict
 import secrets
 
 DATABASE_URL = "postgresql+psycopg2://admin_tice:PatinM_LPOFrancois1er_2026!@db:5432/bdd_tice"
@@ -21,6 +22,7 @@ class LogDB(Base):
     poste = Column(String, index=True)
     action = Column(String)
     statut = Column(String)
+    details = Column(JSON, nullable=True)
 
 Base.metadata.create_all(bind=engine)
 
@@ -46,6 +48,7 @@ class ActionLog(BaseModel):
     poste: str
     action: str
     statut: str
+    details: Optional[Dict] = None
 
 def get_db():
     db = SessionLocal()
@@ -63,7 +66,7 @@ def read_root():
 # Les utilitaires locaux postent ici sans mot de passe
 @app.post("/api/historique")
 def log_action(log: ActionLog, db: Session = Depends(get_db)):
-    nouveau_log = LogDB(outil=log.outil, poste=log.poste, action=log.action, statut=log.statut)
+    nouveau_log = LogDB(outil=log.outil, poste=log.poste, action=log.action, statut=log.statut, details=log.details)
     db.add(nouveau_log)
     db.commit()
     db.refresh(nouveau_log)
