@@ -63,3 +63,9 @@ def log_action(log: ActionLog, db: Session = Depends(get_db)):
     
     print(f"Log enregistré en BDD avec l'ID : {nouveau_log.id}")
     return {"status": "success", "message": "Action sauvegardée en BDD", "id": nouveau_log.id}
+
+@app.get("/api/historique")
+def lire_historique(db: Session = Depends(get_db)):
+    # Récupère les 50 derniers logs par ordre décroissant
+    logs = db.query(LogDB).order_by(LogDB.date_action.desc()).limit(50).all()
+    return logs
