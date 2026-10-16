@@ -44,7 +44,7 @@ def get_db():
 
 @app.get("/")
 def read_root():
-    return {"message": "API TICE en ligne et connectée à PostgreSQL !"}
+    return {"message": "API TICE en ligne et connectée à PostgreSQL ! Au travail !"}
 
 @app.post("/api/historique")
 def log_action(log: ActionLog, db: Session = Depends(get_db)):
