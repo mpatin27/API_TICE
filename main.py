@@ -1,23 +1,65 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Depends
 from pydantic import BaseModel
+from sqlalchemy import create_engine, Column, Integer, String, DateTime
+from sqlalchemy.orm import sessionmaker, Session, declarative_base
+from datetime import datetime
 
+# 1. Configuration de la connexion à PostgreSQL
+DATABASE_URL = "postgresql://admin_tice:PatinM_LPOFrancois1er_2026!@db:5432/bdd_tice"
+
+engine = create_engine(DATABASE_URL)
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+Base = declarative_base()
+
+# 2. Définition de la structure de la table "historique" en BDD
+class LogDB(Base):
+    __tablename__ = "historique"
+    id = Column(Integer, primary_key=True, index=True)
+    date_action = Column(DateTime, default=datetime.utcnow)
+    outil = Column(String, index=True)
+    poste = Column(String, index=True)
+    action = Column(String)
+    statut = Column(String)
+
+# 3. Création automatique de la table au démarrage si elle n'existe pas
+Base.metadata.create_all(bind=engine)
+
+# 4. Initialisation de l'API
 app = FastAPI(title="API Lycée François 1er")
 
-# Modèle de données attendu par l'API
+# Modèle des données reçues par la requête
 class ActionLog(BaseModel):
-    outil: str      # ex: "Reset_ACL"
-    poste: str      # ex: "Prof-104"
-    action: str     # ex: "Réinitialisation MDP"
-    statut: str     # ex: "Succès"
+    outil: str
+    poste: str
+    action: str
+    statut: str
+
+# Fonction pour ouvrir et fermer proprement la connexion à chaque requête
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
 
 @app.get("/")
 def read_root():
-    return {"message": "API TICE en ligne et prête à recevoir des requêtes !"}
+    return {"message": "API TICE en ligne et connectée à PostgreSQL !"}
 
 @app.post("/api/historique")
-def log_action(log: ActionLog):
-    # Pour l'instant, on l'affiche juste dans la console du serveur.
-    # Plus tard, on insérera ces données dans la base PostgreSQL !
-    print(f"[{log.poste}] {log.outil} - {log.action} : {log.statut}")
+def log_action(log: ActionLog, db: Session = Depends(get_db)):
+    # Création de la ligne à insérer
+    nouveau_log = LogDB(
+        outil=log.outil,
+        poste=log.poste,
+        action=log.action,
+        statut=log.statut
+    )
     
-    return {"status": "success", "message": "Action enregistrée dans l'historique"}
+    # Sauvegarde dans la base de données
+    db.add(nouveau_log)
+    db.commit()
+    db.refresh(nouveau_log) # Pour récupérer l'ID auto-généré
+    
+    print(f"Log enregistré en BDD avec l'ID : {nouveau_log.id}")
+    return {"status": "success", "message": "Action sauvegardée en BDD", "id": nouveau_log.id}
