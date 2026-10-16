@@ -16,7 +16,7 @@ Base = declarative_base()
 class LogDB(Base):
     __tablename__ = "historique"
     id = Column(Integer, primary_key=True, index=True)
-    date_action = Column(DateTime, default=datetime.utcnow)
+    date_action = Column(DateTime, default=datetime.now)
     outil = Column(String, index=True)
     poste = Column(String, index=True)
     action = Column(String)
