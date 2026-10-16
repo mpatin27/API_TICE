@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard TICE - Lycée François 1er</title>
+    <!-- Import de Tailwind CSS pour un design moderne sans effort -->
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-100 p-8 font-sans text-slate-800">
+    <div class="max-w-6xl mx-auto">
+        <div class="flex justify-between items-center mb-8">
+            <h1 class="text-3xl font-bold text-slate-700">🖥️ Tableau de bord TICE</h1>
+            <span class="bg-blue-100 text-blue-800 text-sm font-medium px-3 py-1 rounded">Lycée François 1er</span>
+        </div>
+        
+        <div class="bg-white shadow-md rounded-lg overflow-hidden">
+            <table class="min-w-full leading-normal">
+                <thead>
+                    <tr class="bg-slate-50 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">
+                        <th class="px-5 py-3 border-b-2 border-slate-200">Date & Heure</th>
+                        <th class="px-5 py-3 border-b-2 border-slate-200">Poste</th>
+                        <th class="px-5 py-3 border-b-2 border-slate-200">Outil</th>
+                        <th class="px-5 py-3 border-b-2 border-slate-200">Action</th>
+                        <th class="px-5 py-3 border-b-2 border-slate-200">Statut</th>
+                    </tr>
+                </thead>
+                <tbody id="logs-body">
+                    <!-- Les données seront injectées ici par Javascript -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        // On interroge notre propre API (chemin relatif)
+        fetch('/api/historique')
+            .then(response => response.json())
+            .then(data => {
+                const tbody = document.getElementById('logs-body');
+                
+                data.forEach(log => {
+                    // Formatage de la date à la française
+                    const date = new Date(log.date_action).toLocaleString('fr-FR');
+                    
+                    // Code couleur dynamique selon le statut
+                    const isSuccess = log.statut.toLowerCase().includes('succès');
+                    const statusClass = isSuccess ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800';
+
+                    tbody.innerHTML += `
+                        <tr class="hover:bg-slate-50 transition-colors">
+                            <td class="px-5 py-4 border-b border-slate-200 text-sm">${date}</td>
+                            <td class="px-5 py-4 border-b border-slate-200 text-sm font-bold">${log.poste}</td>
+                            <td class="px-5 py-4 border-b border-slate-200 text-sm">
+                                <span class="bg-slate-100 text-slate-600 px-2 py-1 rounded text-xs">${log.outil}</span>
+                            </td>
+                            <td class="px-5 py-4 border-b border-slate-200 text-sm">${log.action}</td>
+                            <td class="px-5 py-4 border-b border-slate-200 text-sm">
+                                <span class="px-3 py-1 font-semibold leading-tight rounded-full text-xs ${statusClass}">
+                                    ${log.statut}
+                                </span>
+                            </td>
+                        </tr>
+                    `;
+                });
+            })
+            .catch(error => console.error('Erreur lors du chargement des logs:', error));
+    </script>
+</body>
+</html>

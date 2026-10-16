@@ -3,6 +3,7 @@ from pydantic import BaseModel
 from sqlalchemy import create_engine, Column, Integer, String, DateTime
 from sqlalchemy.orm import sessionmaker, Session, declarative_base
 from datetime import datetime
+from fastapi.responses import FileResponse
 
 # 1. Configuration de la connexion à PostgreSQL
 DATABASE_URL = "postgresql+psycopg2://admin_tice:PatinM_LPOFrancois1er_2026!@db:5432/bdd_tice"
@@ -69,3 +70,7 @@ def lire_historique(db: Session = Depends(get_db)):
     # Récupère les 50 derniers logs par ordre décroissant
     logs = db.query(LogDB).order_by(LogDB.date_action.desc()).limit(50).all()
     return logs
+
+@app.get("/dashboard")
+def afficher_dashboard():
+    return FileResponse("static/index.html")
