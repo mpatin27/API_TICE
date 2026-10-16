@@ -1,0 +1,8 @@
+version: '3.8'
+services:
+  api:
+    build: .
+    container_name: api-tice
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
