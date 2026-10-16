@@ -5,7 +5,7 @@ from sqlalchemy.orm import sessionmaker, Session, declarative_base
 from datetime import datetime
 
 # 1. Configuration de la connexion à PostgreSQL
-DATABASE_URL = "postgresql://admin_tice:PatinM_LPOFrancois1er_2026!@db:5432/bdd_tice"
+DATABASE_URL = "postgresql+psycopg2://admin_tice:PatinM_LPOFrancois1er_2026!@db:5432/bdd_tice"
 
 engine = create_engine(DATABASE_URL)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
