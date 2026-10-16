@@ -4,67 +4,110 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard TICE - Lycée François 1er</title>
-    <!-- Import de Tailwind CSS pour un design moderne sans effort -->
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="bg-slate-100 p-8 font-sans text-slate-800">
+<body class="bg-slate-50 p-8 font-sans text-slate-800 h-screen">
     <div class="max-w-6xl mx-auto">
-        <div class="flex justify-between items-center mb-8">
-            <h1 class="text-3xl font-bold text-slate-700">🖥️ Tableau de bord TICE</h1>
-            <span class="bg-blue-100 text-blue-800 text-sm font-medium px-3 py-1 rounded">Lycée François 1er</span>
+        
+        <!-- En-tête -->
+        <div class="flex justify-between items-end mb-6 border-b border-slate-200 pb-4">
+            <div>
+                <h1 class="text-3xl font-bold text-slate-800">Console d'Administration TICE</h1>
+                <p class="text-slate-500 mt-1">Lycée François 1er • Suivi du parc informatique</p>
+            </div>
+            <!-- Barre de recherche -->
+            <div class="relative w-64">
+                <input type="text" id="searchInput" onkeyup="filtrerTableau()" placeholder="Rechercher un poste, outil..." class="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
+                <svg class="w-5 h-5 text-slate-400 absolute left-3 top-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+            </div>
         </div>
         
-        <div class="bg-white shadow-md rounded-lg overflow-hidden">
-            <table class="min-w-full leading-normal">
+        <!-- Tableau -->
+        <div class="bg-white shadow-sm border border-slate-200 rounded-lg overflow-hidden">
+            <table class="min-w-full leading-normal" id="logsTable">
                 <thead>
-                    <tr class="bg-slate-50 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">
-                        <th class="px-5 py-3 border-b-2 border-slate-200">Date & Heure</th>
-                        <th class="px-5 py-3 border-b-2 border-slate-200">Poste</th>
-                        <th class="px-5 py-3 border-b-2 border-slate-200">Outil</th>
-                        <th class="px-5 py-3 border-b-2 border-slate-200">Action</th>
-                        <th class="px-5 py-3 border-b-2 border-slate-200">Statut</th>
+                    <tr class="bg-slate-100 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">
+                        <th class="px-5 py-3 border-b border-slate-200">Date</th>
+                        <th class="px-5 py-3 border-b border-slate-200">Poste</th>
+                        <th class="px-5 py-3 border-b border-slate-200">Outil</th>
+                        <th class="px-5 py-3 border-b border-slate-200">Action / Rapport</th>
+                        <th class="px-5 py-3 border-b border-slate-200">Statut</th>
+                        <th class="px-5 py-3 border-b border-slate-200 text-center">Actions</th>
                     </tr>
                 </thead>
                 <tbody id="logs-body">
-                    <!-- Les données seront injectées ici par Javascript -->
+                    <!-- Injection JS -->
                 </tbody>
             </table>
         </div>
     </div>
 
     <script>
-        // On interroge notre propre API (chemin relatif)
-        fetch('/api/historique')
-            .then(response => response.json())
-            .then(data => {
-                const tbody = document.getElementById('logs-body');
-                
-                data.forEach(log => {
-                    // Formatage de la date à la française
-                    const date = new Date(log.date_action).toLocaleString('fr-FR');
-                    
-                    // Code couleur dynamique selon le statut
-                    const isSuccess = log.statut.toLowerCase().includes('succès');
-                    const statusClass = isSuccess ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800';
+        // Chargement initial
+        chargerLogs();
 
-                    tbody.innerHTML += `
-                        <tr class="hover:bg-slate-50 transition-colors">
-                            <td class="px-5 py-4 border-b border-slate-200 text-sm">${date}</td>
-                            <td class="px-5 py-4 border-b border-slate-200 text-sm font-bold">${log.poste}</td>
-                            <td class="px-5 py-4 border-b border-slate-200 text-sm">
-                                <span class="bg-slate-100 text-slate-600 px-2 py-1 rounded text-xs">${log.outil}</span>
-                            </td>
-                            <td class="px-5 py-4 border-b border-slate-200 text-sm">${log.action}</td>
-                            <td class="px-5 py-4 border-b border-slate-200 text-sm">
-                                <span class="px-3 py-1 font-semibold leading-tight rounded-full text-xs ${statusClass}">
-                                    ${log.statut}
-                                </span>
-                            </td>
-                        </tr>
-                    `;
+        function chargerLogs() {
+            fetch('/api/historique')
+                .then(response => response.json())
+                .then(data => {
+                    const tbody = document.getElementById('logs-body');
+                    tbody.innerHTML = ''; // On vide avant de remplir
+                    
+                    data.forEach(log => {
+                        const date = new Date(log.date_action).toLocaleString('fr-FR', {hour: '2-digit', minute:'2-digit', day:'2-digit', month:'2-digit', year:'numeric'});
+                        const isSuccess = log.statut.toLowerCase().includes('succès') || log.statut.toLowerCase().includes('ok');
+                        const statusClass = isSuccess ? 'bg-emerald-100 text-emerald-700 border-emerald-200' : 'bg-rose-100 text-rose-700 border-rose-200';
+
+                        tbody.innerHTML += `
+                            <tr class="hover:bg-slate-50 transition-colors border-b border-slate-100 group" id="row-${log.id}">
+                                <td class="px-5 py-3 text-sm text-slate-500">${date}</td>
+                                <td class="px-5 py-3 text-sm font-semibold text-slate-700">${log.poste}</td>
+                                <td class="px-5 py-3 text-sm">
+                                    <span class="bg-blue-50 border border-blue-100 text-blue-700 px-2.5 py-0.5 rounded text-xs font-medium">${log.outil}</span>
+                                </td>
+                                <td class="px-5 py-3 text-sm text-slate-600">${log.action}</td>
+                                <td class="px-5 py-3 text-sm">
+                                    <span class="px-2.5 py-0.5 border font-medium rounded text-xs ${statusClass}">
+                                        ${log.statut}
+                                    </span>
+                                </td>
+                                <td class="px-5 py-3 text-center">
+                                    <button onclick="supprimerLog(${log.id})" class="text-slate-300 hover:text-red-500 transition-colors p-1" title="Supprimer">
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                                    </button>
+                                </td>
+                            </tr>
+                        `;
+                    });
                 });
-            })
-            .catch(error => console.error('Erreur lors du chargement des logs:', error));
+        }
+
+        // Fonction de suppression API
+        function supprimerLog(id) {
+            if(confirm("Supprimer ce rapport de l'historique ?")) {
+                fetch('/api/historique/' + id, { method: 'DELETE' })
+                    .then(response => {
+                        if(response.ok) {
+                            document.getElementById('row-' + id).remove();
+                        }
+                    });
+            }
+        }
+
+        // Fonction de filtre (Barre de recherche)
+        function filtrerTableau() {
+            let input = document.getElementById("searchInput").value.toLowerCase();
+            let trs = document.getElementById("logs-body").getElementsByTagName("tr");
+            
+            for (let i = 0; i < trs.length; i++) {
+                // On vérifie le texte de toute la ligne
+                if (trs[i].innerText.toLowerCase().indexOf(input) > -1) {
+                    trs[i].style.display = "";
+                } else {
+                    trs[i].style.display = "none";
+                }
+            }
+        }
     </script>
 </body>
 </html>
