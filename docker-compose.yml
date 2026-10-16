@@ -8,12 +8,15 @@ services:
       - "8080:8000"
     depends_on:
       - db
+    environment:
+      - TZ=Europe/Paris
 
   db:
     image: postgres:15-alpine
     container_name: db-tice
     restart: unless-stopped
     environment:
+      TZ: Europe/Paris
       POSTGRES_USER: admin_tice
       POSTGRES_PASSWORD: PatinM_LPOFrancois1er_2026!
       POSTGRES_DB: bdd_tice
