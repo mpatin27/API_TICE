@@ -6,3 +6,19 @@ services:
     restart: unless-stopped
     ports:
       - "8080:8000"
+    depends_on:
+      - db
+
+  db:
+    image: postgres:15-alpine
+    container_name: db-tice
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: admin_tice
+      POSTGRES_PASSWORD: PatinM_LPOFrancois1er_2026!
+      POSTGRES_DB: bdd_tice
+    volumes:
+      - db_data:/var/lib/postgresql/data
+
+volumes:
+  db_data:
