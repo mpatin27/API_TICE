@@ -7,8 +7,8 @@
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-slate-50 p-8 font-sans text-slate-800 h-screen">
+    
     <div class="max-w-6xl mx-auto">
-        
         <!-- En-tête -->
         <div class="flex justify-between items-end mb-6 border-b border-slate-200 pb-4">
             <div>
@@ -17,7 +17,7 @@
             </div>
             <!-- Barre de recherche -->
             <div class="relative w-64">
-                <input type="text" id="searchInput" onkeyup="filtrerTableau()" placeholder="Rechercher un poste, outil..." class="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
+                <input type="text" id="searchInput" onkeyup="filtrerTableau()" placeholder="Rechercher..." class="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
                 <svg class="w-5 h-5 text-slate-400 absolute left-3 top-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
             </div>
         </div>
@@ -30,7 +30,7 @@
                         <th class="px-5 py-3 border-b border-slate-200">Date</th>
                         <th class="px-5 py-3 border-b border-slate-200">Poste</th>
                         <th class="px-5 py-3 border-b border-slate-200">Outil</th>
-                        <th class="px-5 py-3 border-b border-slate-200">Action / Rapport</th>
+                        <th class="px-5 py-3 border-b border-slate-200">Action</th>
                         <th class="px-5 py-3 border-b border-slate-200">Statut</th>
                         <th class="px-5 py-3 border-b border-slate-200 text-center">Actions</th>
                     </tr>
@@ -42,8 +42,34 @@
         </div>
     </div>
 
+    <!-- FENÊTRE MODALE (Cachée par défaut) -->
+    <div id="detailsModal" class="hidden fixed inset-0 bg-slate-900 bg-opacity-50 z-50 flex items-center justify-center backdrop-blur-sm transition-opacity">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-3xl mx-4 overflow-hidden flex flex-col max-h-[85vh]">
+            
+            <div class="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+                <div>
+                    <h3 class="text-lg font-bold text-slate-800" id="modalTitle">Rapport Détaillé</h3>
+                    <p class="text-sm text-slate-500" id="modalSubtitle">Détails de l'action</p>
+                </div>
+                <button onclick="fermerModal()" class="text-slate-400 hover:text-slate-700 transition-colors">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+            </div>
+            
+            <div class="p-6 overflow-y-auto bg-white" id="modalBody">
+                <!-- Les données JSON seront injectées ici sous forme de grilles -->
+            </div>
+            
+            <div class="px-6 py-4 border-t border-slate-100 bg-slate-50 flex justify-end">
+                <button onclick="fermerModal()" class="bg-white border border-slate-300 text-slate-700 px-5 py-2 rounded-lg font-medium hover:bg-slate-100 transition-colors">Fermer</button>
+            </div>
+        </div>
+    </div>
+
     <script>
-        // Chargement initial
+        // Ce dictionnaire global va stocker temporairement les rapports JSON pour la modale
+        let cacheLogs = {};
+
         chargerLogs();
 
         function chargerLogs() {
@@ -51,30 +77,48 @@
                 .then(response => response.json())
                 .then(data => {
                     const tbody = document.getElementById('logs-body');
-                    tbody.innerHTML = ''; // On vide avant de remplir
+                    tbody.innerHTML = ''; 
                     
                     data.forEach(log => {
+                        // Sauvegarde du log entier dans le cache pour la modale
+                        cacheLogs[log.id] = log;
+
                         const date = new Date(log.date_action).toLocaleString('fr-FR', {hour: '2-digit', minute:'2-digit', day:'2-digit', month:'2-digit', year:'numeric'});
                         const isSuccess = log.statut.toLowerCase().includes('succès') || log.statut.toLowerCase().includes('ok');
-                        const statusClass = isSuccess ? 'bg-emerald-100 text-emerald-700 border-emerald-200' : 'bg-rose-100 text-rose-700 border-rose-200';
+                        const isWarning = log.statut.toLowerCase().includes('avertissement');
+                        
+                        let statusClass = 'bg-rose-100 text-rose-700 border-rose-200';
+                        if (isSuccess) statusClass = 'bg-emerald-100 text-emerald-700 border-emerald-200';
+                        if (isWarning) statusClass = 'bg-amber-100 text-amber-700 border-amber-200';
+
+                        // Apparition du bouton "Détails" uniquement si un JSON est présent
+                        let btnDetails = '';
+                        if (log.details && Object.keys(log.details).length > 0) {
+                            btnDetails = `
+                                <button onclick="ouvrirModal(${log.id})" class="text-blue-500 hover:text-blue-700 transition-colors p-1" title="Voir le rapport détaillé">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
+                                </button>
+                            `;
+                        }
 
                         tbody.innerHTML += `
                             <tr class="hover:bg-slate-50 transition-colors border-b border-slate-100 group" id="row-${log.id}">
-                                <td class="px-5 py-3 text-sm text-slate-500">${date}</td>
-                                <td class="px-5 py-3 text-sm font-semibold text-slate-700">${log.poste}</td>
-                                <td class="px-5 py-3 text-sm">
+                                <td class="px-5 py-4 text-sm text-slate-500">${date}</td>
+                                <td class="px-5 py-4 text-sm font-bold text-slate-700">${log.poste}</td>
+                                <td class="px-5 py-4 text-sm">
                                     <span class="bg-blue-50 border border-blue-100 text-blue-700 px-2.5 py-0.5 rounded text-xs font-medium">${log.outil}</span>
                                 </td>
-                                <td class="px-5 py-3 text-sm text-slate-600">${log.action}</td>
-                                <td class="px-5 py-3 text-sm">
-                                    <span class="px-2.5 py-0.5 border font-medium rounded text-xs ${statusClass}">
-                                        ${log.statut}
-                                    </span>
+                                <td class="px-5 py-4 text-sm text-slate-600">${log.action}</td>
+                                <td class="px-5 py-4 text-sm">
+                                    <span class="px-2.5 py-0.5 border font-medium rounded text-xs ${statusClass}">${log.statut}</span>
                                 </td>
-                                <td class="px-5 py-3 text-center">
-                                    <button onclick="supprimerLog(${log.id})" class="text-slate-300 hover:text-red-500 transition-colors p-1" title="Supprimer">
-                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
-                                    </button>
+                                <td class="px-5 py-4 text-center">
+                                    <div class="flex justify-center items-center space-x-3">
+                                        ${btnDetails}
+                                        <button onclick="supprimerLog(${log.id})" class="text-slate-300 hover:text-red-500 transition-colors p-1" title="Supprimer">
+                                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                                        </button>
+                                    </div>
                                 </td>
                             </tr>
                         `;
@@ -82,25 +126,49 @@
                 });
         }
 
-        // Fonction de suppression API
+        function ouvrirModal(id) {
+            const log = cacheLogs[id];
+            if (!log || !log.details) return;
+
+            document.getElementById('modalTitle').innerText = `PC : ${log.poste}`;
+            document.getElementById('modalSubtitle').innerText = `Rapport généré par ${log.outil} le ${new Date(log.date_action).toLocaleString('fr-FR')}`;
+            
+            const tbody = document.getElementById('modalBody');
+            
+            // Création d'une grille propre pour afficher chaque clé/valeur du JSON
+            let html = '<div class="grid grid-cols-1 md:grid-cols-2 gap-4">';
+            for (const [cle, valeur] of Object.entries(log.details)) {
+                html += `
+                    <div class="bg-slate-50 p-4 rounded-lg border border-slate-100">
+                        <span class="block text-xs font-bold text-blue-500 uppercase tracking-wider mb-1">${cle}</span>
+                        <span class="block text-sm font-medium text-slate-700 break-words">${valeur}</span>
+                    </div>
+                `;
+            }
+            html += '</div>';
+            
+            tbody.innerHTML = html;
+            document.getElementById('detailsModal').classList.remove('hidden');
+        }
+
+        function fermerModal() {
+            document.getElementById('detailsModal').classList.add('hidden');
+        }
+
         function supprimerLog(id) {
             if(confirm("Supprimer ce rapport de l'historique ?")) {
                 fetch('/api/historique/' + id, { method: 'DELETE' })
                     .then(response => {
-                        if(response.ok) {
-                            document.getElementById('row-' + id).remove();
-                        }
+                        if(response.ok) document.getElementById('row-' + id).remove();
                     });
             }
         }
 
-        // Fonction de filtre (Barre de recherche)
         function filtrerTableau() {
             let input = document.getElementById("searchInput").value.toLowerCase();
             let trs = document.getElementById("logs-body").getElementsByTagName("tr");
             
             for (let i = 0; i < trs.length; i++) {
-                // On vérifie le texte de toute la ligne
                 if (trs[i].innerText.toLowerCase().indexOf(input) > -1) {
                     trs[i].style.display = "";
                 } else {
